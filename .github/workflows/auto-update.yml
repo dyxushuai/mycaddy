@@ -1,0 +1,137 @@
+name: auto-update
+
+on:
+  schedule:
+    - cron: "19 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: auto-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Resolve upstream versions
+        id: versions
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          caddy_version=$(gh api repos/caddyserver/caddy/releases/latest --jq .tag_name)
+          cloudflare_version=$(gh api repos/caddy-dns/cloudflare/releases/latest --jq .tag_name)
+
+          if l4_version=$(gh api repos/mholt/caddy-l4/releases/latest --jq .tag_name 2>/dev/null); then
+            :
+          else
+            l4_version=$(gh api repos/mholt/caddy-l4/commits --jq '.[0].sha' -F per_page=1)
+          fi
+
+          echo "caddy=$caddy_version" >> "$GITHUB_OUTPUT"
+          echo "cloudflare=$cloudflare_version" >> "$GITHUB_OUTPUT"
+          echo "l4=$l4_version" >> "$GITHUB_OUTPUT"
+
+      - name: Update Dockerfile and README
+        id: update
+        env:
+          CADDY_VERSION: ${{ steps.versions.outputs.caddy }}
+          L4_VERSION: ${{ steps.versions.outputs.l4 }}
+          CLOUDFLARE_VERSION: ${{ steps.versions.outputs.cloudflare }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+
+          import os
+          import re
+          from pathlib import Path
+
+          caddy = os.environ["CADDY_VERSION"]
+          l4 = os.environ["L4_VERSION"]
+          cloudflare = os.environ["CLOUDFLARE_VERSION"]
+
+          def update_file(path: str, rules: list[tuple[str, str]]) -> None:
+              p = Path(path)
+              text = p.read_text()
+              updated = text
+              for pattern, repl in rules:
+                  updated, count = re.subn(pattern, repl, updated, flags=re.M)
+                  if count == 0:
+                      raise SystemExit(f"Pattern not found in {path}: {pattern}")
+              if updated != text:
+                  p.write_text(updated)
+
+          update_file(
+              "Dockerfile",
+              [
+                  (r"^ARG CADDY_VERSION=.*$", f"ARG CADDY_VERSION={caddy}"),
+                  (r"^ARG L4_COMMIT=.*$", f"ARG L4_COMMIT={l4}"),
+                  (r"^ARG CLOUDFLARE_VERSION=.*$", f"ARG CLOUDFLARE_VERSION={cloudflare}"),
+              ],
+          )
+
+          update_file(
+              "README.md",
+              [
+                  (r"^- Caddy: `.*`$", f"- Caddy: `{caddy}`"),
+                  (r"^- caddy-l4: `.*`$", f"- caddy-l4: `{l4}`"),
+                  (r"^- caddy-dns/cloudflare: `.*`$", f"- caddy-dns/cloudflare: `{cloudflare}`"),
+              ],
+          )
+          PY
+
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit, tag, and release
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CADDY_VERSION: ${{ steps.versions.outputs.caddy }}
+          L4_VERSION: ${{ steps.versions.outputs.l4 }}
+          CLOUDFLARE_VERSION: ${{ steps.versions.outputs.cloudflare }}
+        run: |
+          set -euo pipefail
+          git fetch --tags
+
+          caddy_version="${CADDY_VERSION#v}"
+          IFS=. read -r caddy_major caddy_minor _ <<<"$caddy_version"
+          series_regex="^v${caddy_major}\\.${caddy_minor}\\.[0-9]+$"
+          latest_tag=$(git tag -l "v${caddy_major}.${caddy_minor}.*" | grep -E "$series_regex" | sort -V | tail -n1 || true)
+
+          if [ -z "$latest_tag" ]; then
+            next="v${caddy_major}.${caddy_minor}.0"
+          else
+            version="${latest_tag#v}"
+            IFS=. read -r _ _ patch <<<"$version"
+            patch=$((patch + 1))
+            next="v${caddy_major}.${caddy_minor}.${patch}"
+          fi
+
+          git add Dockerfile README.md
+          git commit -m "chore: bump upstream versions"
+          git push origin HEAD
+
+          git tag "$next"
+          git push origin "$next"
+
+          gh release create "$next" \
+            --title "$next" \
+            --notes "Automated update: Caddy ${CADDY_VERSION}, caddy-l4 ${L4_VERSION}, caddy-dns/cloudflare ${CLOUDFLARE_VERSION}"

@@ -106,6 +106,7 @@ Cloudflare DNS module: https://github.com/caddy-dns/cloudflare
 ## Image Tags
 - `vX.Y.Z`: published on GitHub Release (published)
 - `latest`: always points to the most recent release
+- Tag scheme: `v<major>.<minor>.<patch>` where major/minor follow Caddy and patch increments per automated update.
 
 Example:
 ```bash
