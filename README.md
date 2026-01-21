@@ -1,13 +1,13 @@
 # mycaddy
 
 ## Overview
-Custom Caddy image for L4 (TCP/UDP) proxying with Cloudflare DNS support, published as ghcr.io/dyxushuai/mycaddy. Built from the official Caddy image with the caddy-l4 and caddy-dns/cloudflare modules; this is not an official Caddy image. Intended for Docker and Docker Compose; provide your Caddyfile at runtime. Multi-arch image for linux/amd64 and linux/arm64. Images are published on GitHub Release (semver tag) with an additional latest tag.
+Custom Caddy image for L4 (TCP/UDP) proxying with Cloudflare DNS support. Published as ghcr.io/dyxushuai/mycaddy. Built from the official Caddy image with the caddy-l4 and caddy-dns/cloudflare modules. This is not an official Caddy image. Intended for Docker and Docker Compose. Provide your Caddyfile at runtime. Multi-arch image for linux/amd64 and linux/arm64. A scheduled workflow checks upstream versions and publishes a GitHub Release. Each release triggers a multi-arch build to GHCR with a semver tag and `latest`.
 
 ## Features
 - L4 TCP/UDP proxying via `caddy-l4`
 - Cloudflare DNS integration via `caddy-dns/cloudflare`
 - Multi-arch images for `linux/amd64` and `linux/arm64`
-- Release-triggered builds with semver tags plus `latest`
+- Automated upstream checks with Release publishing; each release triggers a multi-arch build with semver tags and `latest`
 - Minimal runtime image (Caddy binary only)
 - Ready for Docker and Docker Compose
 
@@ -104,9 +104,9 @@ See also: https://github.com/mholt/caddy-l4
 Cloudflare DNS module: https://github.com/caddy-dns/cloudflare
 
 ## Image Tags
-- `vX.Y.Z`: published on GitHub Release (published)
+- `vX.Y.Z`: GitHub Release tag
 - `latest`: always points to the most recent release
-- Tag scheme: `v<major>.<minor>.<patch>` where major/minor follow Caddy and patch increments per automated update.
+- Tag scheme: `v<major>.<minor>.<patch>` where major/minor follow Caddy and patch increments on each automated update.
 
 Example:
 ```bash
