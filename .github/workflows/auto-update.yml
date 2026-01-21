@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: auto-update
@@ -206,3 +207,5 @@ jobs:
           gh release create "$next" \
             --title "$next" \
             --notes "Automated update: Caddy ${CADDY_VERSION}, caddy-l4 ${L4_VERSION}, caddy-dns/cloudflare ${CLOUDFLARE_VERSION}"
+
+          gh workflow run build-and-push -r "$next"
