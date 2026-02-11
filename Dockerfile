@@ -3,8 +3,8 @@
 FROM caddy:2-builder AS builder
 
 ARG CADDY_VERSION=v2.10.2
-ARG L4_COMMIT=040d25cc886ab41afe5a3e25a7cb33a2fcafa202
-ARG CLOUDFLARE_VERSION=v0.2.2
+ARG L4_COMMIT=5b50eb6ed84c74cd3d4b15f854b93b8b6d71424c
+ARG CLOUDFLARE_VERSION=v0.2.3
 
 RUN xcaddy build ${CADDY_VERSION} \
   --with github.com/mholt/caddy-l4@${L4_COMMIT} \
