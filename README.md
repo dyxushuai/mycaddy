@@ -12,7 +12,7 @@ Custom Caddy image for L4 (TCP/UDP) proxying with Cloudflare DNS support. Publis
 - Ready for Docker and Docker Compose
 
 ## Included Modules & Versions
-- Caddy: `v2.10.2`
+- Caddy: `v2.11.1`
 - caddy-l4: `eca560d759c9378bda81445b9f0f1a3aaec98b5f`
 - caddy-dns/cloudflare: `v0.2.3`
 
