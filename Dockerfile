@@ -4,7 +4,7 @@ FROM caddy:2-builder AS builder
 
 ARG CADDY_VERSION=v2.11.2
 ARG L4_COMMIT=v0.1.0
-ARG CLOUDFLARE_VERSION=v0.2.3
+ARG CLOUDFLARE_VERSION=v0.2.4
 
 RUN xcaddy build ${CADDY_VERSION} \
   --with github.com/mholt/caddy-l4@${L4_COMMIT} \
