@@ -3,7 +3,7 @@
 FROM caddy:2-builder AS builder
 
 ARG CADDY_VERSION=v2.11.4
-ARG L4_COMMIT=v0.1.1
+ARG L4_COMMIT=v0.1.2
 ARG CLOUDFLARE_VERSION=v0.2.4
 
 RUN xcaddy build ${CADDY_VERSION} \
